@@ -3,6 +3,7 @@ import butterchurnPresets from "butterchurn-presets";
 import Visualizer from "./Visualizer";
 
 import { useFileContext } from "./../Contexts/FileContext";
+import { useEffect, useState } from "react";
 
 interface Props {
   blobFile: Blob;
@@ -11,18 +12,42 @@ interface Props {
 const AudioVisualizer: React.FC<Props> = () => {
   const { canvasRef, blobFile, handleSetAudioSource } = useFileContext();
 
-  const InitializeAudio = () => {
-    if (blobFile) {
-      const audioSource = new Audio(URL.createObjectURL(blobFile));
-      audioSource.load();
-      const audioContext = new AudioContext();
-      const source = audioContext.createMediaElementSource(audioSource);
-      RenderVisuals(audioContext, source);
-      source.connect(audioContext.destination);
-      audioSource.play();
-      handleSetAudioSource(audioSource);
-    }
-  };
+  useEffect(() => {
+    let audioSource: HTMLAudioElement | null = null;
+    let audioContext: AudioContext | null = null;
+    let source: MediaElementAudioSourceNode | null = null;
+
+    const InitializeAudio = () => {
+      if (blobFile) {
+        audioSource = new Audio(URL.createObjectURL(blobFile));
+        audioSource.load();
+        audioContext = new AudioContext();
+        source = audioContext.createMediaElementSource(audioSource);
+        source.connect(audioContext.destination);
+
+        audioSource.play();
+        handleSetAudioSource(audioSource);
+
+        // Render visuals with new blobFile, one at a time
+        RenderVisuals(audioContext, source);
+      }
+    };
+
+    // Call InitializeAudio on blobFile change
+    InitializeAudio();
+
+    // Cleanup function to stop previous audio and visuals
+    return () => {
+      if (audioSource) {
+        audioSource.pause();
+        audioSource = null;
+      }
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+      }
+    };
+  }, [blobFile]);
 
   const RenderVisuals = (
     audioContext: AudioContext,
@@ -38,11 +63,13 @@ const AudioVisualizer: React.FC<Props> = () => {
         }
       );
       visualizer.connectAudio(source);
+
       const presets = butterchurnPresets.getPresets();
       const preset =
         presets["Flexi, martin + geiss - dedicated to the sherwin maxawow"];
+      visualizer.loadPreset(preset, 0.0); // Blend time set to 0 for immediate loading
 
-      visualizer.loadPreset(preset, 0.0); // 2nd argument is the number of seconds to blend presets
+      // Start rendering the new visual
       render(visualizer);
     }
   };
@@ -54,7 +81,7 @@ const AudioVisualizer: React.FC<Props> = () => {
     }, 1000 / 60);
   };
 
-  return <Visualizer CreateVisualizer={InitializeAudio} />;
+  return <Visualizer />;
 };
 
 export default AudioVisualizer;

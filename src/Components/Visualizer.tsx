@@ -1,12 +1,11 @@
-import { useEffect } from "react";
-
+import { useEffect, useState } from "react";
 import { useFileContext } from "./../Contexts/FileContext";
 
-function Visualizer({ CreateVisualizer }) {
-  const { blobFile, canvasRef } = useFileContext();
-
+function Visualizer() {
+  const { canvasRef, blobFile } = useFileContext();
+  const [canvasKey, setCanvasKey] = useState<string>(() => crypto.randomUUID());
   useEffect(() => {
-    CreateVisualizer();
+    setCanvasKey(crypto.randomUUID());
   }, [blobFile]);
 
   return <canvas ref={canvasRef} width={300} height={300} id="canvas" />;
