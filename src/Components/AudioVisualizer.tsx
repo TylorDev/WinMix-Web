@@ -3,20 +3,22 @@ import butterchurnPresets from "butterchurn-presets";
 import Visualizer from "./Visualizer";
 
 import { useFileContext } from "./../Contexts/FileContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
-  blobFile: Blob;
+  currentpreset: string;
 }
 
-const AudioVisualizer: React.FC<Props> = () => {
+const AudioVisualizer: React.FC<Props> = ({
+  currentpreset = "_Geiss - untitled",
+}) => {
   const { canvasRef, blobFile, handleSetAudioSource } = useFileContext();
-
+  const [sourceG, setSourceG] = useState<MediaElementAudioSourceNode>();
   useEffect(() => {
     let audioSource: HTMLAudioElement | null = null;
     let audioContext: AudioContext | null = null;
     let source: MediaElementAudioSourceNode | null = null;
-
+    if (source) setSourceG(source);
     const InitializeAudio = () => {
       if (blobFile) {
         audioSource = new Audio(URL.createObjectURL(blobFile));
@@ -48,26 +50,67 @@ const AudioVisualizer: React.FC<Props> = () => {
       }
     };
   }, [blobFile]);
+  // Add a ref to store the current visualizer instance
+  const visualizerRef = useRef<Visualizer | null>(null);
+  // Add a ref to store the animation frame ID
+
+  useEffect(() => {
+    const resizeCanvas = () => {
+      const canvas = canvasRef.current;
+      if (canvas && visualizerRef.current) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        visualizerRef.current.setRendererSize(
+          window.innerWidth,
+          window.innerHeight
+        );
+      }
+    };
+
+    resizeCanvas(); // Ajusta el tamaño al cargar.
+    window.addEventListener("resize", resizeCanvas); // Escucha cambios de tamaño.
+
+    return () => window.removeEventListener("resize", resizeCanvas); // Limpia el listener.
+  }, [canvasRef]);
+
+  const animationFrameRef = useRef<number | null>(null);
 
   const RenderVisuals = (
     audioContext: AudioContext,
     source: MediaElementAudioSourceNode
   ) => {
+    // First, clean up any existing visualizer
+    if (visualizerRef.current) {
+      // Stop the current animation frame
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      // Disconnect the audio
+      if (sourceG) visualizerRef.current.disconnectAudio(sourceG);
+      visualizerRef.current = null;
+    }
+
     if (canvasRef.current) {
+      canvasRef.current.height = window.innerHeight;
+      canvasRef.current.width = window.innerWidth;
       const visualizer = butterchurn.createVisualizer(
         audioContext,
         canvasRef.current,
         {
-          width: canvasRef.current.width,
-          height: canvasRef.current.height,
+          width: window.innerWidth,
+          height: window.innerHeight,
         }
       );
+
       visualizer.connectAudio(source);
 
       const presets = butterchurnPresets.getPresets();
-      const preset =
-        presets["Flexi, martin + geiss - dedicated to the sherwin maxawow"];
-      visualizer.loadPreset(preset, 0.0); // Blend time set to 0 for immediate loading
+      const preset = presets[currentpreset];
+      visualizer.loadPreset(preset, 0.0);
+
+      // Store the new visualizer instance
+      visualizerRef.current = visualizer;
 
       // Start rendering the new visual
       render(visualizer);
@@ -76,10 +119,22 @@ const AudioVisualizer: React.FC<Props> = () => {
 
   const render = (visualizer: Visualizer) => {
     visualizer.render();
-    setTimeout(() => {
+    // Use requestAnimationFrame instead of setTimeout for smoother animation
+    animationFrameRef.current = requestAnimationFrame(() => {
       render(visualizer);
-    }, 1000 / 60);
+    });
   };
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (visualizerRef.current) {
+        if (sourceG) visualizerRef.current.disconnectAudio(sourceG);
+      }
+    };
+  }, []);
 
   return <Visualizer />;
 };
