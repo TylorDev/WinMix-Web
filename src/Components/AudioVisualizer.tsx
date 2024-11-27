@@ -4,16 +4,17 @@ import Visualizer from "./Visualizer";
 
 import { useFileContext } from "./../Contexts/FileContext";
 import { useEffect, useRef, useState } from "react";
-
+import mypreset from "../Presets/mypreset.json";
+import other from "../Presets/other.json";
 interface Props {
-  currentpreset: string;
+  claves: string[];
 }
 
-const AudioVisualizer: React.FC<Props> = ({
-  currentpreset = "_Geiss - untitled",
-}) => {
+const AudioVisualizer: React.FC<Props> = ({ claves }) => {
   const { canvasRef, blobFile, handleSetAudioSource } = useFileContext();
   const [sourceG, setSourceG] = useState<MediaElementAudioSourceNode>();
+  const WavesObjetList = butterchurnPresets.getPresets();
+
   useEffect(() => {
     let audioSource: HTMLAudioElement | null = null;
     let audioContext: AudioContext | null = null;
@@ -105,16 +106,34 @@ const AudioVisualizer: React.FC<Props> = ({
 
       visualizer.connectAudio(source);
 
-      const presets = butterchurnPresets.getPresets();
-      const preset = presets[currentpreset];
-      visualizer.loadPreset(preset, 0.0);
+      randomPresets(visualizer);
 
-      // Store the new visualizer instance
       visualizerRef.current = visualizer;
 
       // Start rendering the new visual
       render(visualizer);
     }
+  };
+
+  const randomProperty = (obj: Record<string, Preset>): Preset => {
+    const keys = Object.keys(obj);
+    return obj[keys[(keys.length * Math.random()) << 0]];
+  };
+
+  const randomPresets = (visualizer: Visualizer): void => {
+    const clavesAConservar: string[] = claves; // Asegúrate de que `claves` esté definido y tipado correctamente
+    const perrosFiltrados = Object.keys(WavesObjetList)
+      .filter((clave) => clavesAConservar.includes(clave))
+      .reduce((obj: Record<string, Preset>, clave: string) => {
+        obj[clave] = WavesObjetList[clave];
+        return obj;
+      }, {});
+
+    // console.log(randomProperty(perrosFiltrados));
+    visualizer.loadPreset(other, 2); // Carga un preset aleatorio
+    setTimeout(() => {
+      randomPresets(visualizer);
+    }, 6000);
   };
 
   const render = (visualizer: Visualizer) => {

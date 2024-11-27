@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useFileContext } from "./../Contexts/FileContext";
 
 function Visualizer() {

@@ -1,19 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useFileContext } from "../../../Contexts/FileContext";
 import AudioVisualizer from "../../../Components/AudioVisualizer";
 
-interface Props {
-  preset: string;
-}
-function Register({ preset }: Props) {
+function Register() {
   const { handleBlobFile } = useFileContext();
+
   useEffect(() => {
     async function fetchAudio() {
       try {
         const response = await fetch("/Don.mp3"); // Cambia la ruta según corresponda
         const arrayBuffer = await response.arrayBuffer();
         const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-
         handleBlobFile(blob);
         // Crear una URL para usar el blob como fuente de audio
       } catch (error) {
@@ -24,6 +21,22 @@ function Register({ preset }: Props) {
     fetchAudio();
   }, []);
 
-  return <AudioVisualizer currentpreset={preset} />;
+  const estatic = [
+    "Cope - The Neverending Explosion of Red Liquid Fire",
+    "cope + martin - mother-of-pearl",
+    "martin - mandelbox explorer - high speed demo version",
+    "martin - castle in the air",
+    "martin - frosty caves 2",
+    "fiShbRaiN + Flexi - witchcraft 2.0",
+    "Flexi - truly soft piece of software - this is generic texturing (Jelly)",
+    "Flexi, fishbrain, Geiss + Martin - tokamak witchery",
+    "Unchained - Rewop",
+    "flexi - bouncing balls [double mindblob neon mix]",
+    "flexi + amandio c - organic12-3d-2.milk",
+    "Flexi - area 51",
+    "flexi + fishbrain - neon mindblob grafitti",
+  ];
+
+  return <AudioVisualizer claves={estatic} />;
 }
 export default Register;
