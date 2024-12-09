@@ -4,8 +4,8 @@ import Visualizer from "./Visualizer";
 
 import { useFileContext } from "./../Contexts/FileContext";
 import { useEffect, useRef, useState } from "react";
-import mypreset from "../Presets/mypreset.json";
-import other from "../Presets/other.json";
+// import { useNavigate } from "react-router-dom";
+
 interface Props {
   claves: string[];
 }
@@ -51,6 +51,7 @@ const AudioVisualizer: React.FC<Props> = ({ claves }) => {
       }
     };
   }, [blobFile]);
+
   // Add a ref to store the current visualizer instance
   const visualizerRef = useRef<Visualizer | null>(null);
   // Add a ref to store the animation frame ID
@@ -114,25 +115,45 @@ const AudioVisualizer: React.FC<Props> = ({ claves }) => {
       render(visualizer);
     }
   };
+  const [lastPresetKey, setLastPresetKey] = useState<string | null>(null);
 
-  const randomProperty = (obj: Record<string, Preset>): Preset => {
-    const keys = Object.keys(obj);
-    return obj[keys[(keys.length * Math.random()) << 0]];
+  const getRandomProperty = <T,>(
+    obj: Record<string, T>,
+    excludeKey: string | null
+  ): T => {
+    const keys = Object.keys(obj).filter((key) => key !== excludeKey);
+    if (keys.length === 0) {
+      throw new Error("No hay propiedades disponibles para seleccionar.");
+    }
+    const randomIndex = Math.floor(Math.random() * keys.length);
+    return obj[keys[randomIndex]];
   };
 
-  const randomPresets = (visualizer: Visualizer): void => {
-    const clavesAConservar: string[] = claves; // Asegúrate de que `claves` esté definido y tipado correctamente
-    const perrosFiltrados = Object.keys(WavesObjetList)
+  const randomPresets = (visualizer: Visualizer) => {
+    const clavesAConservar: string[] = claves; // `claves` debe estar definido y tipado
+    const PresetsFiltrados = Object.keys(WavesObjetList)
       .filter((clave) => clavesAConservar.includes(clave))
-      .reduce((obj: Record<string, Preset>, clave: string) => {
+      .reduce<Record<string, Preset>>((obj, clave) => {
         obj[clave] = WavesObjetList[clave];
         return obj;
       }, {});
 
-    // console.log(randomProperty(perrosFiltrados));
-    visualizer.loadPreset(other, 2); // Carga un preset aleatorio
+    if (Object.keys(PresetsFiltrados).length === 0) {
+      console.warn("No hay presets disponibles para seleccionar.");
+      return;
+    }
+
+    const selectedPreset = getRandomProperty(PresetsFiltrados, lastPresetKey);
+    const selectedKey = Object.keys(PresetsFiltrados).find(
+      (key) => PresetsFiltrados[key] === selectedPreset
+    );
+
+    if (selectedKey) setLastPresetKey(selectedKey);
+
+    visualizer.loadPreset(selectedPreset, 2);
+
     setTimeout(() => {
-      randomPresets(visualizer);
+      randomPresets(visualizer); // Recursión con el visualizador como parámetro
     }, 6000);
   };
 

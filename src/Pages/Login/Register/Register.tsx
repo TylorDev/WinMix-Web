@@ -30,11 +30,8 @@ function Register() {
     "fiShbRaiN + Flexi - witchcraft 2.0",
     "Flexi - truly soft piece of software - this is generic texturing (Jelly)",
     "Flexi, fishbrain, Geiss + Martin - tokamak witchery",
-    "Unchained - Rewop",
-    "flexi - bouncing balls [double mindblob neon mix]",
     "flexi + amandio c - organic12-3d-2.milk",
     "Flexi - area 51",
-    "flexi + fishbrain - neon mindblob grafitti",
   ];
 
   return <AudioVisualizer claves={estatic} />;
