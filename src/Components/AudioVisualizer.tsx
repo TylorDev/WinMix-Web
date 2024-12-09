@@ -12,43 +12,59 @@ interface Props {
 
 const AudioVisualizer: React.FC<Props> = ({ claves }) => {
   const { canvasRef, blobFile, handleSetAudioSource } = useFileContext();
-  const [sourceG, setSourceG] = useState<MediaElementAudioSourceNode>();
+
+  const [audioSource, setAudioSource] = useState<HTMLAudioElement | null>(null);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [sourceG, setSourceG] = useState<MediaElementAudioSourceNode | null>(
+    null
+  );
+
   const WavesObjetList = butterchurnPresets.getPresets();
 
+  // Inicializa el audio
+  const initializeAudio = () => {
+    if (blobFile) {
+      // Crear y configurar elementos de audio
+      const newAudioSource = new Audio(URL.createObjectURL(blobFile));
+      const newAudioContext = new AudioContext();
+      const newSource =
+        newAudioContext.createMediaElementSource(newAudioSource);
+
+      newSource.connect(newAudioContext.destination);
+
+      // Reproducir audio
+      newAudioSource.load();
+      newAudioSource.play();
+
+      // Guardar estados y manejar la fuente
+      setAudioSource(newAudioSource);
+      setAudioContext(newAudioContext);
+      setSourceG(newSource);
+      handleSetAudioSource(newAudioSource);
+
+      // Renderizar visuales
+      RenderVisuals(newAudioContext, newSource);
+    }
+  };
+
+  // Limpia el estado de audio y contexto
+  const cleanupAudio = () => {
+    if (audioSource) {
+      audioSource.pause();
+      setAudioSource(null);
+    }
+    if (audioContext) {
+      audioContext.close();
+      setAudioContext(null);
+    }
+  };
+
+  // Efecto para ejecutar la inicialización y limpieza al cambiar `blobFile`
   useEffect(() => {
-    let audioSource: HTMLAudioElement | null = null;
-    let audioContext: AudioContext | null = null;
-    let source: MediaElementAudioSourceNode | null = null;
-    if (source) setSourceG(source);
-    const InitializeAudio = () => {
-      if (blobFile) {
-        audioSource = new Audio(URL.createObjectURL(blobFile));
-        audioSource.load();
-        audioContext = new AudioContext();
-        source = audioContext.createMediaElementSource(audioSource);
-        source.connect(audioContext.destination);
+    initializeAudio();
 
-        audioSource.play();
-        handleSetAudioSource(audioSource);
-
-        // Render visuals with new blobFile, one at a time
-        RenderVisuals(audioContext, source);
-      }
-    };
-
-    // Call InitializeAudio on blobFile change
-    InitializeAudio();
-
-    // Cleanup function to stop previous audio and visuals
     return () => {
-      if (audioSource) {
-        audioSource.pause();
-        audioSource = null;
-      }
-      if (audioContext) {
-        audioContext.close();
-        audioContext = null;
-      }
+      cleanupAudio();
     };
   }, [blobFile]);
 
