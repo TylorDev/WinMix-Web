@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { decodeBase64ToBlob } from "../../Utils/Utils";
 import { useFileContext } from "../../Contexts/FileContext";
-import AudioVisualizer from "../../Components/AudioVisualizer";
+// import AudioVisualizer from "../../Components/AudioVisualizer";
 import butterchurnPresets from "butterchurn-presets";
 import { useNavigate } from "react-router-dom";
 
@@ -26,12 +26,29 @@ declare global {
 }
 
 function Login() {
-  const { handleBlobFile, blobFile, audioSource } = useFileContext();
+  const { handleBlobFile, blobFile, audioSource, handleList } =
+    useFileContext();
   const [isBlur, setIsBlur] = useState(false);
+
+  const [shapMessage, setShapMessage] = useState(false);
   useEffect(() => {
-    window.receiveFile = async (fileContent: string, fileName: string) => {
-      const { file } = await decodeBase64ToBlob(fileContent, fileName);
-      handleBlobFile(file);
+    handleList(all);
+    window.receiveFile = async (
+      fileContent: string,
+      fileName: string,
+      mimeType: string
+    ) => {
+      try {
+        const { file } = await decodeBase64ToBlob(
+          fileContent,
+          fileName,
+          mimeType
+        );
+        handleBlobFile(file);
+        setShapMessage(true);
+      } catch (error) {
+        console.error("Error al procesar el archivo:", error);
+      }
     };
 
     return () => {
@@ -78,11 +95,20 @@ function Login() {
         const currentTime = audioSource.currentTime || 0;
         setCurrentTime(currentTime);
 
+        console.log(currentTime.toString());
+        const formatter = new Intl.NumberFormat("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+        const formattedTime = formatter.format(currentTime);
+
         // Enviar el tiempo actual al WebView2
         if (window.chrome && window.chrome.webview) {
-          window.chrome.webview.postMessage({
-            message: currentTime.toString(),
-          });
+          if (shapMessage == true) {
+            window.chrome.webview.postMessage({
+              message: formattedTime,
+            });
+          }
         } else {
           console.log("WebView2 no disponible");
         }
@@ -226,9 +252,9 @@ function Login() {
     <>
       <div>
         {isBlur && <div className="Blur"></div>}
-        <button>Click Click Click</button>
+        {/* <button>Click Click Click</button>
 
-        <AudioVisualizer claves={all} />
+        <AudioVisualizer claves={all} /> */}
       </div>
     </>
   );

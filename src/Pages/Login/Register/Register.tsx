@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useFileContext } from "../../../Contexts/FileContext";
-import AudioVisualizer from "../../../Components/AudioVisualizer";
+// import AudioVisualizer from "../../../Components/AudioVisualizer";
 
 function Register() {
-  const { handleBlobFile } = useFileContext();
+  const { handleBlobFile, handleList } = useFileContext();
 
   useEffect(() => {
     async function fetchAudio() {
@@ -17,7 +17,7 @@ function Register() {
         console.error("Error al cargar el audio:", error);
       }
     }
-
+    handleList(estatic);
     fetchAudio();
   }, []);
 
@@ -34,6 +34,6 @@ function Register() {
     "Flexi - area 51",
   ];
 
-  return <AudioVisualizer claves={estatic} />;
+  return <div>{/* <AudioVisualizer claves={estatic} />; */}</div>;
 }
 export default Register;

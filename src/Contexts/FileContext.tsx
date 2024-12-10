@@ -7,6 +7,8 @@ interface FileContextType {
   handleBlobFile: (value: Blob) => void;
   audioSource: HTMLAudioElement | null;
   handleSetAudioSource: (value: HTMLAudioElement) => void;
+  handleList: (value: string[]) => void;
+  list: string[];
 }
 
 // Crea el contexto vacío
@@ -32,7 +34,11 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   const [blobFile, setBlobFile] = useState<Blob | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [audioSource, setAudioSource] = useState<HTMLAudioElement | null>(null);
+  const [list, setList] = useState<string[]>([]);
 
+  const handleList = (value: string[]) => {
+    setList(value);
+  };
   const handleSetAudioSource = (value: HTMLAudioElement) => {
     if (value) {
       setAudioSource(value);
@@ -48,6 +54,8 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     handleBlobFile,
     audioSource,
     handleSetAudioSource,
+    handleList,
+    list,
   };
 
   return <FileContext.Provider value={value}>{children}</FileContext.Provider>;
