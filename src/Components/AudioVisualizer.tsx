@@ -5,15 +5,30 @@ import Visualizer from "./Visualizer";
 import { useFileContext } from "./../Contexts/FileContext";
 import { useEffect, useRef, useState } from "react";
 // import { useNavigate } from "react-router-dom";
-
+declare global {
+  interface Window {
+    goToNext: () => void;
+    goToPrevious: () => void;
+    togglePause: () => void;
+  }
+}
 interface Props {
   claves: string[];
 }
+const shuffleArray = (array: string[]): string[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  console.log("Original", array);
+  console.log("Mezcla", shuffled);
+  return shuffled;
+};
 
 const AudioVisualizer: React.FC<Props> = ({ claves }) => {
   const { canvasRef, blobFile, handleSetAudioSource } = useFileContext();
   const [sourceG, setSourceG] = useState<MediaElementAudioSourceNode>();
-  const WavesObjetList = butterchurnPresets.getPresets();
 
   useEffect(() => {
     let audioSource: HTMLAudioElement | null = null;
@@ -107,7 +122,7 @@ const AudioVisualizer: React.FC<Props> = ({ claves }) => {
 
       visualizer.connectAudio(source);
 
-      randomPresets(visualizer);
+      // randomPresets(visualizer);
 
       visualizerRef.current = visualizer;
 
@@ -116,46 +131,15 @@ const AudioVisualizer: React.FC<Props> = ({ claves }) => {
     }
   };
 
-  const [lastPresetKey, setLastPresetKey] = useState<string | null>(null);
-  const getRandomProperty = <T,>(
-    obj: Record<string, T>,
-    excludeKey: string | null
-  ): T => {
-    const keys = Object.keys(obj).filter((key) => key !== excludeKey);
-    if (keys.length === 0) {
-      throw new Error("No hay propiedades disponibles para seleccionar.");
-    }
-    const randomIndex = Math.floor(Math.random() * keys.length);
-    return obj[keys[randomIndex]];
-  };
+  ///RANDOM
 
-  const randomPresets = (visualizer: Visualizer) => {
-    const clavesAConservar: string[] = claves; // `claves` debe estar definido y tipado
-    const PresetsFiltrados = Object.keys(WavesObjetList)
-      .filter((clave) => clavesAConservar.includes(clave))
-      .reduce<Record<string, Preset>>((obj, clave) => {
-        obj[clave] = WavesObjetList[clave];
-        return obj;
-      }, {});
+  const { currentKey, goToNext, goToPrevious, togglePause, paused } =
+    useShuffledPresets(claves, visualizerRef.current);
 
-    if (Object.keys(PresetsFiltrados).length === 0) {
-      console.warn("No hay presets disponibles para seleccionar.");
-      return;
-    }
-
-    const selectedPreset = getRandomProperty(PresetsFiltrados, lastPresetKey);
-    const selectedKey = Object.keys(PresetsFiltrados).find(
-      (key) => PresetsFiltrados[key] === selectedPreset
-    );
-
-    if (selectedKey) setLastPresetKey(selectedKey);
-
-    visualizer.loadPreset(selectedPreset, 2);
-
-    setTimeout(() => {
-      randomPresets(visualizer); // Recursión con el visualizador como parámetro
-    }, 6000);
-  };
+  window.goToNext = goToNext;
+  window.goToPrevious = goToPrevious;
+  window.togglePause = togglePause;
+  //RANDOM ----------------------- FINAL
 
   const render = (visualizer: Visualizer) => {
     visualizer.render();
@@ -176,7 +160,142 @@ const AudioVisualizer: React.FC<Props> = ({ claves }) => {
     };
   }, []);
 
-  return <Visualizer />;
+  return (
+    <div>
+      <p>Preset actual: {currentKey}</p>
+      <button onClick={goToPrevious}>Anterior</button>
+      <button onClick={togglePause}>{paused ? "Reanudar" : "Pausar"}</button>
+      <button onClick={goToNext}>Siguiente</button>
+      <Visualizer />
+    </div>
+  );
 };
 
 export default AudioVisualizer;
+const useShuffledPresets = (
+  claves: string[],
+  visualizer: Visualizer | null
+) => {
+  const [shuffledKeys, setShuffledKeys] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [paused, setPaused] = useState<boolean>(false);
+  const intervalRef = useRef<number | null>(null);
+  const WavesObjetList = butterchurnPresets.getPresets();
+  useEffect(() => {
+    setShuffledKeys(shuffleArray(claves));
+    setCurrentIndex(0);
+  }, [claves]);
+
+  useEffect(() => {
+    if (!paused && visualizer && shuffledKeys.length > 0) {
+      intervalRef.current = window.setInterval(() => {
+        setCurrentIndex((prevIndex) => {
+          let nextIndex = (prevIndex + 1) % shuffledKeys.length;
+          let nextKey = shuffledKeys[nextIndex];
+
+          // Buscar la siguiente clave válida
+          while (!WavesObjetList[nextKey] && nextIndex !== prevIndex) {
+            nextIndex = (nextIndex + 1) % shuffledKeys.length;
+            nextKey = shuffledKeys[nextIndex];
+          }
+
+          if (!WavesObjetList[nextKey]) {
+            console.error(`No hay claves válidas para avanzar.`);
+            return prevIndex; // No avanza si no hay claves válidas
+          }
+
+          try {
+            visualizer.loadPreset(WavesObjetList[nextKey], 2);
+          } catch (error) {
+            console.error(
+              `Error al cargar el preset para la clave '${nextKey}':`,
+              error
+            );
+          }
+
+          return nextIndex;
+        });
+      }, 6000);
+    }
+
+    return () => {
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [paused, visualizer, shuffledKeys]);
+
+  const goToNext = () => {
+    if (!visualizer) return;
+
+    setCurrentIndex((prevIndex) => {
+      let nextIndex = (prevIndex + 1) % shuffledKeys.length;
+      let nextKey = shuffledKeys[nextIndex];
+
+      // Buscar la siguiente clave válida
+      while (!WavesObjetList[nextKey] && nextIndex !== prevIndex) {
+        nextIndex = (nextIndex + 1) % shuffledKeys.length;
+        nextKey = shuffledKeys[nextIndex];
+      }
+
+      if (!WavesObjetList[nextKey]) {
+        console.error(`No hay claves válidas para avanzar.`);
+        return prevIndex; // No avanza si no hay claves válidas
+      }
+
+      try {
+        visualizer.loadPreset(WavesObjetList[nextKey], 2);
+      } catch (error) {
+        console.error(
+          `Error al cargar el preset para la clave '${nextKey}':`,
+          error
+        );
+      }
+
+      return nextIndex;
+    });
+  };
+
+  const goToPrevious = () => {
+    if (!visualizer) return;
+
+    setCurrentIndex((prevIndex) => {
+      let prevIndexAdjusted =
+        (prevIndex - 1 + shuffledKeys.length) % shuffledKeys.length;
+      let prevKey = shuffledKeys[prevIndexAdjusted];
+
+      // Buscar la clave anterior válida
+      while (!WavesObjetList[prevKey] && prevIndexAdjusted !== prevIndex) {
+        prevIndexAdjusted =
+          (prevIndexAdjusted - 1 + shuffledKeys.length) % shuffledKeys.length;
+        prevKey = shuffledKeys[prevIndexAdjusted];
+      }
+
+      if (!WavesObjetList[prevKey]) {
+        console.error(`No hay claves válidas para retroceder.`);
+        return prevIndex; // No retrocede si no hay claves válidas
+      }
+
+      try {
+        visualizer.loadPreset(WavesObjetList[prevKey], 2);
+      } catch (error) {
+        console.error(
+          `Error al cargar el preset para la clave '${prevKey}':`,
+          error
+        );
+      }
+
+      return prevIndexAdjusted;
+    });
+  };
+
+  const togglePause = () => setPaused((prev) => !prev);
+
+  return {
+    currentKey: shuffledKeys[currentIndex] || null,
+    goToNext,
+    goToPrevious,
+    togglePause,
+    paused,
+  };
+};

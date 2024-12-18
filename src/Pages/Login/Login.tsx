@@ -95,7 +95,6 @@ function Login() {
         const currentTime = audioSource.currentTime || 0;
         setCurrentTime(currentTime);
 
-        console.log(currentTime.toString());
         const formatter = new Intl.NumberFormat("pt-BR", {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
@@ -109,8 +108,6 @@ function Login() {
               message: formattedTime,
             });
           }
-        } else {
-          console.log("WebView2 no disponible");
         }
       };
 
