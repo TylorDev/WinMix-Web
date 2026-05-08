@@ -3,7 +3,7 @@ import butterchurnPresets from "butterchurn-presets";
 import Visualizer from "./Visualizer";
 
 import { useFileContext } from "./../Contexts/FileContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, ChangeEvent } from "react";
 // import { useNavigate } from "react-router-dom";
 declare global {
   interface Window {
@@ -27,8 +27,27 @@ const shuffleArray = (array: string[]): string[] => {
 };
 
 const AudioVisualizer: React.FC<Props> = ({ claves }) => {
-  const { canvasRef, blobFile, handleSetAudioSource } = useFileContext();
+  const { canvasRef, blobFile, handleSetAudioSource, handleBlobFile, audioSource } = useFileContext();
   const [sourceG, setSourceG] = useState<MediaElementAudioSourceNode>();
+  const [isPlayingAudio, setIsPlayingAudio] = useState(true);
+
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleBlobFile(e.target.files[0]);
+      setIsPlayingAudio(true);
+    }
+  };
+
+  const toggleAudio = () => {
+    if (audioSource) {
+      if (isPlayingAudio) {
+        audioSource.pause();
+      } else {
+        audioSource.play();
+      }
+      setIsPlayingAudio(!isPlayingAudio);
+    }
+  };
 
   useEffect(() => {
     let audioSource: HTMLAudioElement | null = null;
@@ -161,11 +180,18 @@ const AudioVisualizer: React.FC<Props> = ({ claves }) => {
   }, []);
 
   return (
-    <div>
-      <p>Preset actual: {currentKey}</p>
-      <button onClick={goToPrevious}>Anterior</button>
-      <button onClick={togglePause}>{paused ? "Reanudar" : "Pausar"}</button>
-      <button onClick={goToNext}>Siguiente</button>
+    <div style={{ position: "relative", zIndex: 10 }}>
+      <div style={{ padding: "10px", background: "rgba(0,0,0,0.5)", color: "white", marginBottom: "10px" }}>
+        <p>Preset actual: {currentKey}</p>
+        <button onClick={goToPrevious}>Anterior Preset</button>
+        <button onClick={togglePause}>{paused ? "Reanudar Preset" : "Pausar Preset"}</button>
+        <button onClick={goToNext}>Siguiente Preset</button>
+      </div>
+      <div style={{ padding: "10px", background: "rgba(0,0,0,0.5)", color: "white" }}>
+        <p>Control de Canción:</p>
+        <input type="file" accept="audio/*" onChange={handleFileUpload} />
+        <button onClick={toggleAudio}>{isPlayingAudio ? "Pausar Canción" : "Reproducir Canción"}</button>
+      </div>
       <Visualizer />
     </div>
   );
