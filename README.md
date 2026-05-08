@@ -134,4 +134,14 @@ Vas a notar que creé una carpeta `src/Types/` con archivos como `butterchurn.d.
 
 También verás un archivo `global.d.ts` donde he declarado variables globales que inyecto manualmente en el objeto `window` (como `window.goToNext` o `window.Navigate`). Con esto, el editor no se queja y me sigue dando el autocompletado en todo el código.
 
+---
+
+## Mi Selección de Presets "VIP" 💎
+
+Si revisas el código (específicamente en `src/Pages/Login/Login.tsx`), notarás que no estoy cargando a ciegas los miles de presets que incluye la librería. Sé que buscar los mejores efectos de Milkdrop entre tanta cantidad puede ser agotador, ¡así que ya hice el trabajo sucio por ti!
+
+He creado una selección curada (mis **Presets VIP**) dividiendo mis favoritos en categorías de calidad (`Perfect`, `Mid`, `Basic`, `incontrolable`). Mi código actúa como un filtro: toma únicamente estos nombres y se los pasa al visualizador. De esta forma te aseguras de tener una experiencia visual increíble desde el primer segundo, sin tener que buscar aguja en un pajar.
+
+---
+
 ¡Espero que disfrutes explorando el código! Y recuerda poner buena música mientras lo haces. 🎧
